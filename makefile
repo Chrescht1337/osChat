@@ -1,12 +1,12 @@
-TARGET = chatRoomServer chatRoomClient
+TARGET= chatRoomServer chatRoomClient
 
-normal:$(TARGET)
+normal: $(TARGET)
 
-chatRoomServer : chatRoomServer.c
-	gcc -Wall chatRoomServer.c -o chatRoomServer
+chatRoomServer: ChatRoomServer.c
+	gcc -Wall ChatRoomServer.c -o chatRoomServer
 
-chatRoomClient : chatRoomClient.c
-	gcc -Wall chatRoomClient.c -o chatRoomClient
+chatRoomClient: ChatRoomClient.c
+	gcc -Wall ChatRoomClient.c -o chatRoomClient
 
 clean:
 	$(RM) $(TARGET)

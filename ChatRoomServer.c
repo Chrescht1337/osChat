@@ -11,8 +11,18 @@
 
 #define MYPORT 5555
 
+#define BACKLOG 10
+
+struct client{
+	int clientSocket;
+	struct sockaddr_in his_addr;
+	char *nickname;
+	struct client* nextClient;
+};
+
+
 int main(){
-	int sockfd;
+	int sockfd,new_fd;
 	int max;
 	struct sockaddr_in my_addr; // my address information
 	struct sockaddr_in their_addr; // connector's address information
@@ -47,4 +57,31 @@ int main(){
 		return EXIT_FAILURE;
 	}
 
+	while(1){
+
+		//Initialisation du fd_set
+		FD_ZERO(&readfds);
+		FD_SET(sockfd, &readfds);
+
+		select(sockfd+1, &readfds, NULL, NULL, NULL);
+
+		new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+		if (new_fd == -1) {
+			perror("Serveur: accept");
+		}
+		printf("Serveur:  connection recue du client %s pour le service 1\n",inet_ntoa(their_addr.sin_addr));
+
+		if (fork()==0) {
+		/* This is the child process */
+			close(sockfd);
+			if (send(new_fd,"Bonjour client\n",16,0) == -1) {
+				perror("Serveur: send");
+				return EXIT_FAILURE;
+			}
+		return EXIT_SUCCESS;
+		}
+	}
+
+
+	return EXIT_SUCCESS;
 }
