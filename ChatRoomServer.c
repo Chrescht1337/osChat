@@ -31,14 +31,16 @@ int main(){
 	fd_set readfds;
 
 	if ((sockfd = socket(PF_INET,SOCK_STREAM, 0)) == -1) {
-		perror("Serveur: socket 1");
+		perror("Serveur: socket ");
 		return EXIT_FAILURE;
 	}
+	printf("server socket\n");
 
 	if (setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
 		perror("Serveur: setsockopt");
 		return EXIT_FAILURE;
 	}
+	printf("server setsockopt\n");
 
 	my_addr.sin_family = AF_INET;
 	my_addr.sin_port = htons(MYPORT);
@@ -51,11 +53,13 @@ int main(){
 		perror("Serveur: bind");
 		return EXIT_FAILURE;
 	}
+	printf("server bound\n");
 
 	if (listen(sockfd, BACKLOG) == -1) {
 		perror("Serveur: listen");
 		return EXIT_FAILURE;
 	}
+	printf("server listening\n");
 
 	while(1){
 

@@ -12,7 +12,7 @@
 
 int main(int argc, char *argv[])
 {
-	int sockfd, numbytes;
+	int sockfd, numbytes,seven;
 	struct sockaddr_in their_addr;// connector's address information
 	struct hostent *he;
 	char* message;
@@ -41,11 +41,13 @@ int main(int argc, char *argv[])
 		perror("Client: connect");
 		return EXIT_FAILURE;
 	}
-
-	if (send(sockfd, 7, sizeof(long int), 0) == -1){
+	seven=7;
+	if (send(sockfd, &seven, sizeof(long int), 0) == -1){
 		perror("Client: send");
 		return EXIT_FAILURE;
 	}
+
+	printf("send!\n");
 
 	if ((numbytes=recv(sockfd, &message,sizeof(long int), 0)) == -1) {
 		perror("Client: recv");
