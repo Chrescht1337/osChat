@@ -12,10 +12,11 @@
 
 int main(int argc, char *argv[])
 {
-	int sockfd, numbytes,seven;
+	int sockfd;
 	struct sockaddr_in their_addr;// connector's address information
 	struct hostent *he;
-	char* message;
+	char messageToServer[100];
+	char* messageFromServer[1000];
 
 	if (argc != 2) {
 		fprintf(stderr, "Donner le nom du serveur en argument.\n");
@@ -41,19 +42,26 @@ int main(int argc, char *argv[])
 		perror("Client: connect");
 		return EXIT_FAILURE;
 	}
-	seven=7;
-	if (send(sockfd, &seven, sizeof(long int), 0) == -1){
-		perror("Client: send");
-		return EXIT_FAILURE;
+
+	while (1){
+		printf("Enter message : ");
+		scanf("%s",messageToServer);
+		if (send(sockfd, messageToServer, strlen(messageToServer), 0) == -1){
+			perror("Client: send");
+			return EXIT_FAILURE;
+		}
+
+		printf("send!\n");
+
+		if ((recv(sockfd, messageFromServer,strlen(messageFromServer), 0)) == -1) {
+			perror("Client: recv");
+			return EXIT_FAILURE;
+		}
+		else{
+			//result=strtok(message, " ");
+			printf("%s\n",messageFromServer);
+		}
 	}
-
-	printf("send!\n");
-
-	if ((numbytes=recv(sockfd, &message,sizeof(long int), 0)) == -1) {
-		perror("Client: recv");
-		return EXIT_FAILURE;
-	}
-
 	close(sockfd);
 
 	return EXIT_SUCCESS;

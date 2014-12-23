@@ -10,7 +10,7 @@
 #include <sys/wait.h>
 
 #define MYPORT 5555
-
+#define BUFFERSIZE 1000
 #define BACKLOG 10
 
 struct client{
@@ -22,21 +22,20 @@ struct client{
 
 
 int main(){
-	int sockfd,new_fd;
-	int max;
+	int serverSocket,new_fd;
 	struct sockaddr_in my_addr; // my address information
-	struct sockaddr_in their_addr; // connector's address information
+	//struct sockaddr_in their_addr; // connector's address information
 	unsigned int sin_size;
 	int yes=1;
 	fd_set readfds;
 
-	if ((sockfd = socket(PF_INET,SOCK_STREAM, 0)) == -1) {
+	if ((serverSocket = socket(PF_INET,SOCK_STREAM, 0)) == -1) {
 		perror("Serveur: socket ");
 		return EXIT_FAILURE;
 	}
 	printf("server socket\n");
 
-	if (setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
+	if (setsockopt(serverSocket,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
 		perror("Serveur: setsockopt");
 		return EXIT_FAILURE;
 	}
@@ -49,36 +48,72 @@ int main(){
 
 	sin_size = sizeof(struct sockaddr_in);
 
-	if (bind(sockfd, (struct sockaddr *)&my_addr,sizeof(struct sockaddr)) == -1) {
+	if (bind(serverSocket, (struct sockaddr *)&my_addr,sizeof(struct sockaddr)) == -1) {
 		perror("Serveur: bind");
 		return EXIT_FAILURE;
 	}
 	printf("server bound\n");
 
-	if (listen(sockfd, BACKLOG) == -1) {
+	if (listen(serverSocket, BACKLOG) == -1) {
 		perror("Serveur: listen");
 		return EXIT_FAILURE;
 	}
 	printf("server listening\n");
 
+
+	while (1){
+    struct sockaddr_in clientAddress;
+    int clientAddressLength = sizeof(clientAddress);
+    int clientSocket;
+
+    clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddress, &clientAddressLength);
+
+    char buffer[BUFFERSIZE];
+    int nbrOfBytesSent;
+
+    nbrOfBytesSent = recv(clientSocket, buffer, BUFFERSIZE, 0);
+    while(nbrOfBytesSent > 0){
+
+      char *result;
+      result = strtok(buffer, " ");
+
+      printf("Message from client : %s\n", result);
+
+      //if(strcmp(&buffer, &get) == 0){
+        char answer[] = "You want GET";
+        send(clientSocket, answer, strlen(answer), 0);
+      //}
+      nbrOfBytesSent = recv(clientSocket, buffer, BUFFERSIZE, 0);
+    }
+	}
+
+
+
+
+
+/*
+
+
+
 	while(1){
 
 		//Initialisation du fd_set
 		FD_ZERO(&readfds);
-		FD_SET(sockfd, &readfds);
+		FD_SET(serverSocket, &readfds);
 
-		select(sockfd+1, &readfds, NULL, NULL, NULL);
+		select(serverSocket+1, &readfds, NULL, NULL, NULL);
 
-		new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size);
+		new_fd = accept(serverSocket, (struct sockaddr *)&their_addr, &sin_size);
 		if (new_fd == -1) {
 			perror("Serveur: accept");
 		}
 		printf("Serveur:  connection recue du client %s pour le service 1\n",inet_ntoa(their_addr.sin_addr));
 
 		if (fork()==0) {
-		/* This is the child process */
-			close(sockfd);
-			if (send(new_fd,"Bonjour client\n",16,0) == -1) {
+		// This is the child process /
+			close(serverSocket);
+			char answer[]="Bonjour client";
+			if (send(new_fd,answer,strlen(answer),0) == -1) {
 				perror("Serveur: send");
 				return EXIT_FAILURE;
 			}
@@ -86,6 +121,6 @@ int main(){
 		}
 	}
 
-
+*/
 	return EXIT_SUCCESS;
 }
