@@ -27,13 +27,15 @@ void sendReceive(int i,int clientSocket){
 		}
 	}
 	else{ //on reçoit un message
-		if (bytesReceived=recv(clientSocket,messageFromServer,BUFFERSIZE,0)==-1){
-			perror("Client receive from server : ");
-			exit(EXIT_FAILURE);
-		}
-		messageFromServer[bytesReceived]="\0";
-		printf("%s\n",messageFromServer);
-		//fflush(stdout);
+		//if (bytesReceived=recv(clientSocket,messageFromServer,BUFFERSIZE,0)==-1){
+		//	perror("Client receive from server : ");
+		//	exit(EXIT_FAILURE);
+		//}
+		bytesReceived=recv(clientSocket,messageFromServer,BUFFERSIZE,0);
+		messageFromServer[bytesReceived]='\0';
+		printf("%s",messageFromServer);
+		//printf("received");
+		fflush(stdout);
 	}
 }
 
@@ -74,6 +76,7 @@ int main(int argc, char *argv[])
 
 	connectToServer(&clientSocket,argv[1],he,&serverAddress);
 	FD_ZERO(&fds);
+	FD_ZERO(&readfds);
 	FD_SET(0,&fds);
 	FD_SET(clientSocket,&fds);
 	maxFD=clientSocket+1;

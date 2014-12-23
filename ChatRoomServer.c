@@ -22,8 +22,8 @@ struct client{
 
 void sendToAll(int i, int j, int serverSocket,fd_set *fds,int bytesReceived,char* messageFromClient){
 	if (FD_ISSET(j,fds)){
-		if (j!=i && j!=serverSocket){
-			printf("%d\n",j);
+		if (j!=serverSocket && j!=i){
+			//printf("%d\n",j);
 			if (send(j,messageFromClient,bytesReceived,0)==-1)
 				perror("send");
 		}
@@ -34,19 +34,18 @@ void sendToAll(int i, int j, int serverSocket,fd_set *fds,int bytesReceived,char
 void receiveMessage(int i,fd_set *fds,int serverSocket,int maxFD){
 	char messageFromClient[BUFFERSIZE];
 	int bytesReceived,j;
-	if (bytesReceived=recv(i,messageFromClient,BUFFERSIZE,0)<=0){
+	if ((bytesReceived=recv(i,messageFromClient,BUFFERSIZE,0))<=0){
 		if (bytesReceived==0){
 			printf("client hung up");
 		}
 		else{
 			perror("recv ");
-			exit(EXIT_FAILURE);
+		}
 			close(i);
 			FD_CLR(i,fds);
-		}
 	}
 	else{
-		printf("%s\n",messageFromClient);
+		//printf("%s\n",messageFromClient);
 		for (j=0;j<maxFD;j++){
 			sendToAll(i,j,serverSocket,fds,bytesReceived,messageFromClient);
 		}
