@@ -20,52 +20,119 @@ struct client{
 	struct client* nextClient;
 };
 
+void sendToAll(int i, int j, int serverSocket,fd_set *fds,int bytesReceived,char* messageFromClient){
+	if (FD_ISSET(j,fds)){
+		if (j!=i && j!=serverSocket){
+			printf("%d\n",j);
+			if (send(j,messageFromClient,bytesReceived,0)==-1)
+				perror("send");
+		}
+	}
+}
+
+
+void receiveMessage(int i,fd_set *fds,int serverSocket,int maxFD){
+	char messageFromClient[BUFFERSIZE];
+	int bytesReceived,j;
+	if (bytesReceived=recv(i,messageFromClient,BUFFERSIZE,0)<=0){
+		if (bytesReceived==0){
+			printf("client hung up");
+		}
+		else{
+			perror("recv ");
+			exit(EXIT_FAILURE);
+			close(i);
+			FD_CLR(i,fds);
+		}
+	}
+	else{
+		printf("%s\n",messageFromClient);
+		for (j=0;j<maxFD;j++){
+			sendToAll(i,j,serverSocket,fds,bytesReceived,messageFromClient);
+		}
+	}
+}
+
+
+void addNewClientSocket(fd_set *fds, int *maxFD, int serverSocket, struct sockaddr_in *clientAddress){
+	int newClientSocket,clientAddressLength=sizeof(struct sockaddr_in);
+	if ((newClientSocket=accept(serverSocket,(struct sockaddr *)clientAddress,&clientAddressLength))==-1){
+		perror("new client accept : ");
+		exit(EXIT_FAILURE);
+	}
+	else{
+		FD_SET(newClientSocket,fds);
+		if (newClientSocket>=*maxFD)
+			*maxFD=newClientSocket+1;
+		printf("new connection : %s\n",inet_ntoa(clientAddress->sin_addr));
+	}
+}
+
+void initServerSocket(int *serverSocket,struct sockaddr_in *my_addr){
+
+	int yes=1;
+	if ((*serverSocket = socket(PF_INET,SOCK_STREAM, 0)) == -1) {
+		perror("Serveur: socket ");
+		exit(EXIT_FAILURE);
+	}
+
+	if (setsockopt(*serverSocket,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
+		perror("Serveur: setsockopt");
+		exit(EXIT_FAILURE);
+	}
+
+	my_addr->sin_family = AF_INET;
+	my_addr->sin_port = htons(MYPORT);
+	my_addr->sin_addr.s_addr = INADDR_ANY;
+	memset(&(my_addr->sin_zero), '\0', 8);
+
+	if (bind(*serverSocket, (struct sockaddr *)my_addr,sizeof(struct sockaddr)) == -1) {
+		perror("Serveur: bind");
+		exit(EXIT_FAILURE);
+	}
+
+	if (listen(*serverSocket, BACKLOG) == -1) {
+		perror("Serveur: listen");
+		exit(EXIT_FAILURE);
+	}
+	fflush(stdout);//on vide le buffer
+}
 
 int main(){
-	int serverSocket,new_fd;
-	struct sockaddr_in my_addr; // my address information
-	//struct sockaddr_in their_addr; // connector's address information
-	unsigned int sin_size;
-	int yes=1;
-	fd_set readfds;
+	int serverSocket,new_fd,j,i,maxFD;
+	struct sockaddr_in my_addr,clientAddress;
+	//unsigned int sin_size;
+	fd_set readfds,fds;
 
-	if ((serverSocket = socket(PF_INET,SOCK_STREAM, 0)) == -1) {
-		perror("Serveur: socket ");
-		return EXIT_FAILURE;
-	}
-	printf("server socket\n");
+	initServerSocket(&serverSocket,&my_addr);
 
-	if (setsockopt(serverSocket,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
-		perror("Serveur: setsockopt");
-		return EXIT_FAILURE;
-	}
-	printf("server setsockopt\n");
-
-	my_addr.sin_family = AF_INET;
-	my_addr.sin_port = htons(MYPORT);
-	my_addr.sin_addr.s_addr = INADDR_ANY;
-	memset(&(my_addr.sin_zero), '\0', 8);
-
-	sin_size = sizeof(struct sockaddr_in);
-
-	if (bind(serverSocket, (struct sockaddr *)&my_addr,sizeof(struct sockaddr)) == -1) {
-		perror("Serveur: bind");
-		return EXIT_FAILURE;
-	}
-	printf("server bound\n");
-
-	if (listen(serverSocket, BACKLOG) == -1) {
-		perror("Serveur: listen");
-		return EXIT_FAILURE;
-	}
-	printf("server listening\n");
-
+	FD_ZERO(&fds);
+	FD_SET(serverSocket,&fds);
+	maxFD=serverSocket+1;
 
 	while (1){
-    struct sockaddr_in clientAddress;
-    int clientAddressLength = sizeof(clientAddress);
-    int clientSocket;
+    readfds=fds;
+		if (select(maxFD,&readfds,NULL,NULL,NULL)==-1){
+			perror("select : ");
+			return EXIT_FAILURE;
+		}
 
+		for (i=0;i<maxFD;i++){
+			if (FD_ISSET(i, &readfds)){
+				if (i==serverSocket){
+    			addNewClientSocket(&fds,&maxFD,serverSocket,&clientAddress);
+				}
+				else{
+					receiveMessage(i,&fds,serverSocket,maxFD);
+				}
+			}
+		}
+	}
+	close(serverSocket);
+	return EXIT_SUCCESS;
+}
+
+		/*
     clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddress, &clientAddressLength);
 
     char buffer[BUFFERSIZE];
@@ -74,18 +141,16 @@ int main(){
     nbrOfBytesSent = recv(clientSocket, buffer, BUFFERSIZE, 0);
     while(nbrOfBytesSent > 0){
 
-      char *result;
-      result = strtok(buffer, " ");
+      char *messageFromClient;
+      messageFromClient = strtok(buffer, "");
 
-      printf("Message from client : %s\n", result);
 
       //if(strcmp(&buffer, &get) == 0){
-        char answer[] = "You want GET";
-        send(clientSocket, answer, strlen(answer), 0);
+      char answer[] = "You want GET";
+      send(clientSocket, answer, strlen(answer)+1, 0);
       //}
       nbrOfBytesSent = recv(clientSocket, buffer, BUFFERSIZE, 0);
-    }
-	}
+		*/
 
 
 
@@ -122,5 +187,3 @@ int main(){
 	}
 
 */
-	return EXIT_SUCCESS;
-}

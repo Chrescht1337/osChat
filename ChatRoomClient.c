@@ -9,20 +9,107 @@
 #include <sys/socket.h>
 
 #define PORT 5555
+#define BUFFERSIZE 1000
+
+void sendReceive(int i,int clientSocket){
+	char messageToServer[BUFFERSIZE];
+	char messageFromServer[BUFFERSIZE];
+	int bytesReceived;
+	if (i==0){ //pour envoyer un message
+		fgets(messageToServer,BUFFERSIZE,stdin);
+		if (strcmp(messageToServer,"exit\n")==0)
+			exit(EXIT_SUCCESS);
+		else{
+			if (send(clientSocket,messageToServer,strlen(messageToServer),0)==-1){
+				perror("Client send to server : ");
+				exit(EXIT_FAILURE);
+			}
+		}
+	}
+	else{ //on reçoit un message
+		if (bytesReceived=recv(clientSocket,messageFromServer,BUFFERSIZE,0)==-1){
+			perror("Client receive from server : ");
+			exit(EXIT_FAILURE);
+		}
+		messageFromServer[bytesReceived]="\0";
+		printf("%s\n",messageFromServer);
+		//fflush(stdout);
+	}
+}
+
+void connectToServer(int *clientSocket,char* serverIP,struct hostent *he,struct sockaddr_in *serverAddress){
+	if ((he=gethostbyname(serverIP)) == NULL) {
+		perror("Client: gethostbyname");
+		exit(EXIT_FAILURE);
+	}
+
+	if ((*clientSocket = socket(AF_INET,SOCK_STREAM, 0)) == -1) {
+		perror("Client: socket");
+		exit(EXIT_FAILURE);
+	}
+
+	serverAddress->sin_family = AF_INET;
+	serverAddress->sin_port = htons(PORT);
+	serverAddress->sin_addr = *((struct in_addr*)he->h_addr);
+	memset(&(serverAddress->sin_zero), '\0', 8);
+
+	if (connect(*clientSocket, (struct sockaddr *)serverAddress,sizeof(struct sockaddr)) == -1) {
+		perror("Client: connect");
+		exit(EXIT_FAILURE);
+	}
+
+}
 
 int main(int argc, char *argv[])
 {
-	int sockfd;
-	struct sockaddr_in their_addr;// connector's address information
+	int clientSocket,maxFD,i;
+	struct sockaddr_in serverAddress;// connector's address information
 	struct hostent *he;
-	char messageToServer[100];
-	char* messageFromServer[1000];
+	fd_set fds,readfds;
 
 	if (argc != 2) {
 		fprintf(stderr, "Donner le nom du serveur en argument.\n");
 		return EXIT_FAILURE;
 	}
 
+	connectToServer(&clientSocket,argv[1],he,&serverAddress);
+	FD_ZERO(&fds);
+	FD_SET(0,&fds);
+	FD_SET(clientSocket,&fds);
+	maxFD=clientSocket+1;
+	while (1){
+		readfds=fds;
+		if (select(maxFD,&readfds,NULL,NULL,NULL)==-1){
+			perror("Client-Select : ");
+			return EXIT_FAILURE;
+		}
+		for (i=0;i<maxFD;i++){
+			if (FD_ISSET(i,&readfds))
+				sendReceive(i,clientSocket);
+		}
+	}
+	close(clientSocket);
+	printf("Client - exit");
+	return EXIT_SUCCESS;
+}
+
+		/*
+		printf("Enter message : ");
+		scanf("%s",messageToServer);
+		if (send(clientSocket, messageToServer, strlen(messageToServer)+1, 0) == -1){
+			perror("Client: send");
+			return EXIT_FAILURE;
+		}
+		char messageFromServer[BUFFERSIZE+1];
+		if ((recv(clientSocket, &messageFromServer,BUFFERSIZE, 0)) == -1) {
+			perror("Client: recv");
+			return EXIT_FAILURE;
+		}
+		else{
+			printf("Message from Server : %s\n",messageFromServer);
+		}
+		*/
+	/*
 	if ((he=gethostbyname(argv[1])) == NULL) {
 		perror("Client: gethostbyname");
 		return EXIT_FAILURE;
@@ -42,28 +129,4 @@ int main(int argc, char *argv[])
 		perror("Client: connect");
 		return EXIT_FAILURE;
 	}
-
-	while (1){
-		printf("Enter message : ");
-		scanf("%s",messageToServer);
-		if (send(sockfd, messageToServer, strlen(messageToServer), 0) == -1){
-			perror("Client: send");
-			return EXIT_FAILURE;
-		}
-
-		printf("send!\n");
-
-		if ((recv(sockfd, messageFromServer,strlen(messageFromServer), 0)) == -1) {
-			perror("Client: recv");
-			return EXIT_FAILURE;
-		}
-		else{
-			//result=strtok(message, " ");
-			printf("%s\n",messageFromServer);
-		}
-	}
-	close(sockfd);
-
-	return EXIT_SUCCESS;
-
-}
+	*/
