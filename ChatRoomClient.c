@@ -19,14 +19,13 @@ void sendReceive(int i,int clientSocket,char* name){
 	int bytesReceived;
 	if (i==0){ //pour envoyer un message
 		fgets(messageToServer,BUFFERSIZE,stdin);
-		if (strcmp(messageToServer,"exit\n")==0)
+		if (strcmp(messageToServer,"exit\n")==0)//utilisateur veut quitter le salon
 			exit(EXIT_SUCCESS);
-		else{
+		else{	//utilisateur a tapé un message
 			char timeMessage[50];
 			char template[]="%s wrote : %s";
-
 			char finalizedMessage[2*BUFFERSIZE];
-			sprintf(finalizedMessage,template,name,messageToServer);
+			sprintf(finalizedMessage,template,name,messageToServer); //formattage du message
 			if (send(clientSocket,finalizedMessage,strlen(finalizedMessage),0)==-1){
 				perror("Client send to server : ");
 				exit(EXIT_FAILURE);

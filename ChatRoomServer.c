@@ -28,7 +28,7 @@ void receiveMessage(int i,fd_set *fds,int serverSocket,int maxFD){
 	int bytesReceived,j;
 	if ((bytesReceived=recv(i,messageFromClient,2*BUFFERSIZE,0))<=0){
 		if (bytesReceived==0){
-			printf("client hung up");
+			printf("Client hung up");
 		}
 		else{
 			perror("recv ");
