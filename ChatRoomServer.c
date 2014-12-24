@@ -11,19 +11,11 @@
 
 #define MYPORT 5555
 #define BUFFERSIZE 1000
-#define BACKLOG 10
-
-struct client{
-	int clientSocket;
-	struct sockaddr_in his_addr;
-	char *nickname;
-	struct client* nextClient;
-};
+#define BACKLOG 20
 
 void sendToAll(int i, int j, int serverSocket,fd_set *fds,int bytesReceived,char* messageFromClient){
 	if (FD_ISSET(j,fds)){
 		if (j!=serverSocket && j!=i){
-			//printf("%d\n",j);
 			if (send(j,messageFromClient,bytesReceived,0)==-1)
 				perror("send");
 		}
@@ -34,7 +26,7 @@ void sendToAll(int i, int j, int serverSocket,fd_set *fds,int bytesReceived,char
 void receiveMessage(int i,fd_set *fds,int serverSocket,int maxFD){
 	char messageFromClient[BUFFERSIZE];
 	int bytesReceived,j;
-	if ((bytesReceived=recv(i,messageFromClient,BUFFERSIZE,0))<=0){
+	if ((bytesReceived=recv(i,messageFromClient,2*BUFFERSIZE,0))<=0){
 		if (bytesReceived==0){
 			printf("client hung up");
 		}
@@ -45,7 +37,6 @@ void receiveMessage(int i,fd_set *fds,int serverSocket,int maxFD){
 			FD_CLR(i,fds);
 	}
 	else{
-		//printf("%s\n",messageFromClient);
 		for (j=0;j<maxFD;j++){
 			sendToAll(i,j,serverSocket,fds,bytesReceived,messageFromClient);
 		}
@@ -100,7 +91,6 @@ void initServerSocket(int *serverSocket,struct sockaddr_in *my_addr){
 int main(){
 	int serverSocket,new_fd,j,i,maxFD;
 	struct sockaddr_in my_addr,clientAddress;
-	//unsigned int sin_size;
 	fd_set readfds,fds;
 
 	initServerSocket(&serverSocket,&my_addr);
@@ -130,59 +120,3 @@ int main(){
 	close(serverSocket);
 	return EXIT_SUCCESS;
 }
-
-		/*
-    clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddress, &clientAddressLength);
-
-    char buffer[BUFFERSIZE];
-    int nbrOfBytesSent;
-
-    nbrOfBytesSent = recv(clientSocket, buffer, BUFFERSIZE, 0);
-    while(nbrOfBytesSent > 0){
-
-      char *messageFromClient;
-      messageFromClient = strtok(buffer, "");
-
-
-      //if(strcmp(&buffer, &get) == 0){
-      char answer[] = "You want GET";
-      send(clientSocket, answer, strlen(answer)+1, 0);
-      //}
-      nbrOfBytesSent = recv(clientSocket, buffer, BUFFERSIZE, 0);
-		*/
-
-
-
-
-
-/*
-
-
-
-	while(1){
-
-		//Initialisation du fd_set
-		FD_ZERO(&readfds);
-		FD_SET(serverSocket, &readfds);
-
-		select(serverSocket+1, &readfds, NULL, NULL, NULL);
-
-		new_fd = accept(serverSocket, (struct sockaddr *)&their_addr, &sin_size);
-		if (new_fd == -1) {
-			perror("Serveur: accept");
-		}
-		printf("Serveur:  connection recue du client %s pour le service 1\n",inet_ntoa(their_addr.sin_addr));
-
-		if (fork()==0) {
-		// This is the child process /
-			close(serverSocket);
-			char answer[]="Bonjour client";
-			if (send(new_fd,answer,strlen(answer),0) == -1) {
-				perror("Serveur: send");
-				return EXIT_FAILURE;
-			}
-		return EXIT_SUCCESS;
-		}
-	}
-
-*/
